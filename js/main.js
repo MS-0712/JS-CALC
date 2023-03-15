@@ -11,14 +11,24 @@ const mathFunctions = [
     { viewName: 'log', mathName: 'Math.log10' },
     { viewName: 'ln', mathName: 'Math.log' },
     { viewName: '√', mathName: 'Math.sqrt' }
-]
+];
 
-let flag = false
+const specialCharacterCases = [
+    { caseRegex : /[0-9]π[0-9]/, symbolRegex: /π/, replaceWith: "*3.14*"},
+    { caseRegex : /π[0-9]/, symbolRegex: /π/, replaceWith: "3.14*"},
+    { caseRegex : /[0-9]π/, symbolRegex: /π/, replaceWith: "*3.14"},
+    { caseRegex : /π/, symbolRegex: /π/, replaceWith: "3.14"},
+    { caseRegex : /e[0-9]/, symbolRegex: /e/, replaceWith: "2.78*"},
+    { caseRegex : /[0-9]e/, symbolRegex: /e/, replaceWith: "*2.78"},
+    { caseRegex : /e[^a-z]/, symbolRegex: /e/, replaceWith: "2.78"},
+    { caseRegex : /\^/, symbolRegex: /\^/, replaceWith: "**"}
+];
+
+let flag = false;
 
 document.addEventListener('keydown', (event) => {
-    let key = event.key
+    let key = event.key;
     let expression = document.getElementById('inp')
-    console.log(key);
     switch (key) {
         case 'Escape':
             expression.value = ''
@@ -61,30 +71,36 @@ function updateInp(input) {
     let state = document.getElementById("inp")
     let expression = state.value + 'N'
 
-    if (value == "C") {
-        state.value = ""
-        state.placeholder = ''
-    }
-    else if (value == "B")
-        state.value = state.value.substr(0, state.value.length - 1)
-    else if (value == "N") {
-        let oc = expression.length, n = ''
-        for (let i = oc - 2; i >= 0; i--) {
-            if (/[0-9]/.test(expression[i]))
-                n += expression[i];
-            else
-                break
-        }
-        n = parseInt(n.split('').reverse().join(''), 10)
-        let regex = new RegExp(n + "N");
-        state.value = expression.replace(regex, "-" + n)
-    }
-    else {
-        if (flag)
-            state.value = ''
-        state.style.setProperty("color", "rgb(129, 129, 129)", "important")
-        state.value += value
-        flag = false
+    switch (value) {
+        case "C":
+            state.value = ""
+            state.placeholder = ''
+            break;
+
+        case "B":
+            state.value = state.value.substr(0, state.value.length - 1)
+            break;
+
+        case "N":
+            let oc = expression.length, n = ''
+            for (let i = oc - 2; i >= 0; i--) {
+                if (/[0-9]/.test(expression[i]))
+                    n += expression[i];
+                else
+                    break
+            }
+            n = parseInt(n.split('').reverse().join(''), 10)
+            let regex = new RegExp(n + "N");
+            state.value = expression.replace(regex, "-" + n)
+            break;
+
+        default:
+            if (flag)
+                state.value = ''
+            state.style.setProperty("color", "rgb(129, 129, 129)", "important")
+            state.value += value
+            flag = false
+            break;
     }
 }
 
@@ -133,6 +149,7 @@ function factorialHandler(expression) {
             else
                 break
         }
+
         n = parseInt(n.split('').reverse().join(''), 10)
         let ans = factorial(n)
         let regex = new RegExp("(" + n + ")!");
@@ -143,44 +160,31 @@ function factorialHandler(expression) {
 function evalRes() {
     let state = document.getElementById("inp")
     let expression = state.value
-    if (expression != '') {
-        try {
+    try {
+        if (expression != '') {
             while (expression.includes('!'))
                 expression = factorialHandler(expression)
 
             mathFunctions.forEach(element => {
-                if (expression.includes(element.viewName)) {
+                if (expression.includes(element.viewName))
                     expression = expression.replaceAll(element.viewName, element.mathName)
-                }
             });
 
-            if (expression.includes('^'))
-                expression = expression.replace(/\^/g, "**")
-            if (/[0-9]π[0-9]/.test(expression))
-                expression = expression.replace(/π/, "*3.14*")
-            if (/π[0-9]/.test(expression))
-                expression = expression.replace(/π/, "3.14*")
-            if (/[0-8]π/.test(expression))
-                expression = expression.replace(/π/, "*3.14")
-            if (/π/.test(expression))
-                expression = expression.replace(/π/, "3.14")
-            if (/e[0-9]/.test(expression))
-                expression = expression.replace(/e/, "2.78*")
-            if (/[0-8]e/.test(expression))
-                expression = expression.replace(/e/, "*2.78")
-            if (/e[^a-z]/.test(expression))
-                expression = expression.replace(/e/, "2.78")
-            console.log(expression);
+            specialCharacterCases.forEach(element => {
+                if(element.caseRegex.test(expression))
+                    expression = expression.replace(element.symbolRegex, element.replaceWith)
+            });
+
             state.value = eval(expression)
             flag = true
             state.style.setProperty("color", "black", "important")
-        } catch (e) {
-            console.log(e);
+        } else {
             state.value = ''
-            state.placeholder = e.name
+            state.placeholder = 'Please enter expression'
         }
-    } else {
+    } catch (e) {
+        console.log(e);
         state.value = ''
-        state.placeholder = 'Please enter expression'
+        state.placeholder = e.name
     }
 }
